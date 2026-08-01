@@ -24,13 +24,17 @@
 Radar bandwidth (frequency) $B$ available to be swept during the chirp period; typically MHz or GHz.
 \end{definition}
 
+On a TI radar, this is \lstinline{freq_slope  * adc_samples / sample_rate}.
+
 \begin{definition}[Speed of Light]
 $c = 299 792 458 m/s$.
 \end{definition}
 
 \begin{definition}[Sample rate]
-Sampling frequency $F_s$ of the radar ADC; typically KHz (Ksps) or MHz (Msps).
+Sampling frequency $F_s$ of the radar ADC.
 \end{definition}
+
+This is typically specified in KHz (Ksps) or MHz (Msps).
 
 \begin{definition}[Number of samples]
 Number of ADC samples $N$ per chirp; this leads to a total observation time of $T_s = N / F_s$.
@@ -61,30 +65,30 @@ $\lambda = c / F$; since we are using a narrow-band radar, $\lambda$ can be appr
 \begin{definition}[Chirp Rate]
 Time between chirps $T_c$.
 \end{definition}
-On a TI radar, this is \lstinline{(idle_time + ramp_end_time) * num_tx}.
+On a TI radar, if using time-division multiplexing across antennas, this is \lstinline{(idle_time + ramp_end_time) * num_tx}.
 
 \begin{definition}[Doppler Resolution]
 $\Delta v = \frac{\lambda}{2N_dT_c}$.
 \end{definition}
+Suppose a given object has radial velocity $v$. The two-way Doppler shift is $f_d = 2v/\lambda$, so $v = f_d\lambda/2$ and $\Delta v = \Delta f_d \lambda / 2$.
 
-todo
+When taking a DFT over the $N_d$ chirps of a frame (slow time), the frequency resolution is $1/(N_dT_c)$. This is exactly the Doppler frequency resolution $\Delta f_d$, so $\Delta v = \Delta f_d \lambda/2 = \frac{\lambda}{2N_dT_c}$.
 
 \begin{definition}[Maximum Doppler Velocity]
 $v_{\max} = \frac{\lambda}{4T_c}$.
 \end{definition}
+The chirps are sampled once every $T_c$ (slow-time sampling rate $1/T_c$), so by the Nyquist criterion the unambiguous Doppler frequency is limited to $|f_d| \leq \frac{1}{2T_c}$. Since $v = f_d\lambda/2$, this gives $v_{\max} = \frac{1}{2T_c}\cdot\frac{\lambda}{2} = \frac{\lambda}{4T_c}$.
 
-todo
-
-\section{Rendering Function}
+\section{Radar Geometry}
 
 \subsection{Inputs}
 
 \begin{definition}[Velocity]
-Direction only; $\bm{v}$; $||\bm{v}||_2 = 1$
+We denote the velocity direction as $\bm{v}$, where $||\bm{v}||_2 = 1.$
 \end{definition}
 
 \begin{definition}[Speed]
-Magnitude component $s$. Actual velocity is $\bm{v}s$.
+Denote the magnitude component as $s$, where the full velocity is $\bm{v}s$.
 \end{definition}
 
 \begin{definition}[Measurements: Distance (radius), Doppler]
