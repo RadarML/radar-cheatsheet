@@ -1,0 +1,115 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[letterpaper, portrait, margin=1in]{geometry}
+\usepackage{listings}
+\lstset{frameround=fttt,basicstyle=\ttfamily,numbers=left,breaklines=true}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{graphicx}
+\usepackage{adjustbox}
+\usepackage{multicol}
+\usepackage{mathtools}
+\usepackage{enumitem}
+\usepackage{bm}
+\setlength\parindent{0pt}
+\newtheorem{definition}{Definition}[section]
+
+\begin{document}
+
+\section{Range Processing}
+
+\begin{definition}[Bandwidth]
+Radar bandwidth (frequency) $B$ available to be swept during the chirp period; typically MHz or GHz.
+\end{definition}
+
+\begin{definition}[Speed of Light]
+$c = 299 792 458 m/s$.
+\end{definition}
+
+\begin{definition}[Sample rate]
+Sampling frequency $F_s$ of the radar ADC; typically KHz (Ksps) or MHz (Msps).
+\end{definition}
+
+\begin{definition}[Number of samples]
+Number of ADC samples $N$ per chirp; this leads to a total observation time of $T_s = N / F_s$.
+\end{definition}
+
+\begin{definition}[Slope]
+Slope $S = B / T_s = BF_s / N$ of the chirp waveform; typically MHz/$\mu$s.
+\end{definition}
+
+\begin{definition}[Range Resolution]
+$\Delta r = \frac{c}{2B}$.
+\end{definition}
+Suppose a given object is at range $r$. This leads to time delay $\tau = 2r/c$, so $\Delta r = c \Delta \tau / 2$.
+
+When taking a DFT over the chirp, the frequency resolution is $1/T_s$. Since the frequency resolution corresponding to a time resolution is $S$, the time delay resolution is $\Delta \tau = \frac{1/T_s}{S} = \frac{1}{B}$. This leads to $\Delta r = c \Delta \tau / 2 = \frac{c}{2B}$.
+
+\begin{definition}[Maximum Range]
+$R_{\max} = N\frac{c}{2B} = \frac{F_sc}{2S}$.
+\end{definition}
+This can be seen by combining the range resolution with the number of range bins, which is equal to the DFT window size ($N$).
+
+\section{Doppler Processing}
+
+\begin{definition}[Wavelength]
+$\lambda = c / F$; since we are using a narrow-band radar, $\lambda$ can be approximated as a constant with respect to the center frequency of the chirp.
+\end{definition}
+
+\begin{definition}[Chirp Rate]
+Time between chirps $T_c$.
+\end{definition}
+On a TI radar, this is \lstinline{(idle_time + ramp_end_time) * num_tx}.
+
+\begin{definition}[Doppler Resolution]
+$\Delta v = \frac{\lambda}{2N_dT_c}$.
+\end{definition}
+
+todo
+
+\begin{definition}[Maximum Doppler Velocity]
+$v_{\max} = \frac{\lambda}{4T_c}$.
+\end{definition}
+
+todo
+
+\section{Rendering Function}
+
+\subsection{Inputs}
+
+\begin{definition}[Velocity]
+Direction only; $\bm{v}$; $||\bm{v}||_2 = 1$
+\end{definition}
+
+\begin{definition}[Speed]
+Magnitude component $s$. Actual velocity is $\bm{v}s$.
+\end{definition}
+
+\begin{definition}[Measurements: Distance (radius), Doppler]
+$(r, d)$ bins; assuming the sensor position is 0, for positions $\bm{a}$, this constrains measurements to $||\bm{a}||_2 = r$ and $\frac{\bm{a}^T\bm{v}s}{||\bm{a}||_2} = \frac{\bm{a}^T\bm{v}s}{r} = d$.
+\end{definition}
+
+The target integration is described by
+\begin{align*}
+    y(r, d ; \ \bm{x}_{\text{sensor}}, \bm{v})
+    = \int\displaylimits_{||\bm{t}||_2 = r, \frac{\bm{t}^T\bm{v}}{||\bm{t}||_2} = d} \sigma(\bm{x}_{\text{sensor}} + \bm{t}) \ d\bm{t}
+\end{align*}
+
+\subsection{Integration Circle}
+
+The constraints are a sphere and a plane, which should constrain measurements to a circle. The center of the circle is $\bm{c} = \bm{v}\frac{rd}{s}$, since this is in the direction of the normal vector $\bm{v}$ and satisfies
+$$ \frac{(\bm{v}(rd/s))^T\bm{v}s}{r} = \frac{\bm{v}^T\bm{v}s(rd/s)}{r} = d.$$
+
+The radius of this circle is
+$$ r' = \sqrt{r - \left\| \bm{v}\frac{rd}{s} \right\|^2} = \sqrt{r - \left(\frac{rd}{s}\right)^2} = r\sqrt{1 - \left(\frac{d}{s}\right)^2}.$$
+
+Let $\bm{p}$ and $\bm{q}$ form an orthonormal basis with $\bm{v}$ (i.e. via Gram-Schmidt). Then, the circle can be parameterized by angle $\psi$ as
+\begin{align*}
+    \bm{a} &= r'\bm{p} \cos(\psi) + r'\bm{q} \sin(\psi) + \bm{v}\frac{rd}{s} \\
+    &= r\left(\sqrt{1 - (d/s)^2}(\bm{p}\cos(\psi) + \bm{q}\sin(\psi)) + \bm{v}\frac{d}{s}\right).
+\end{align*}
+
+\end{document}
+
