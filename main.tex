@@ -15,6 +15,9 @@
 \usepackage{bm}
 \setlength\parindent{0pt}
 \newtheorem{definition}{Definition}[section]
+\theoremstyle{definition}
+\newtheorem{remark}{Remark}[section]
+\theoremstyle{plain}
 
 \begin{document}
 
@@ -24,7 +27,9 @@
 Radar bandwidth (frequency) $B$ available to be swept during the chirp period; typically MHz or GHz.
 \end{definition}
 
+\begin{remark}[TI Implementation]
 On a TI radar, this is \lstinline{freq_slope  * adc_samples / sample_rate}.
+\end{remark}
 
 \begin{definition}[Speed of Light]
 $c = 299 792 458 m/s$.
@@ -34,7 +39,9 @@ $c = 299 792 458 m/s$.
 Sampling frequency $F_s$ of the radar ADC.
 \end{definition}
 
+\begin{remark}[Units]
 This is typically specified in KHz (Ksps) or MHz (Msps).
+\end{remark}
 
 \begin{definition}[Number of samples]
 Number of ADC samples $N$ per chirp; this leads to a total observation time of $T_s = N / F_s$.
@@ -59,13 +66,19 @@ This can be seen by combining the range resolution with the number of range bins
 \section{Doppler Processing}
 
 \begin{definition}[Wavelength]
-$\lambda = c / F$; since we are using a narrow-band radar, $\lambda$ can be approximated as a constant with respect to the center frequency of the chirp.
+$\lambda = c / F$.
 \end{definition}
+
+\begin{remark}[Narrow-Band Approximation]
+If using a narrow-band radar, $\lambda$ can be approximated as a constant with respect to the center frequency of the chirp.
+\end{remark}
 
 \begin{definition}[Chirp Rate]
 Time between chirps $T_c$.
 \end{definition}
+\begin{remark}[TI Implementation]
 On a TI radar, if using time-division multiplexing across antennas, this is \lstinline{(idle_time + ramp_end_time) * num_tx}.
+\end{remark}
 
 \begin{definition}[Doppler Resolution]
 $\Delta v = \frac{\lambda}{2N_dT_c}$.
@@ -77,9 +90,9 @@ When taking a DFT over the $N_d$ chirps of a frame (slow time), the frequency re
 \begin{definition}[Maximum Doppler Velocity]
 $v_{\max} = \frac{\lambda}{4T_c}$.
 \end{definition}
-The chirps are sampled once every $T_c$ (slow-time sampling rate $1/T_c$), so by the Nyquist criterion the unambiguous Doppler frequency is limited to $|f_d| \leq \frac{1}{2T_c}$. Since $v = f_d\lambda/2$, this gives $v_{\max} = \frac{1}{2T_c}\cdot\frac{\lambda}{2} = \frac{\lambda}{4T_c}$.
+Chirps are sampled once every $T_c$ (slow-time sampling rate $1/T_c$), so by the Nyquist criterion the unambiguous Doppler frequency is limited to $|f_d| \leq \frac{1}{2T_c}$. Since $v = f_d\lambda/2$, this gives $v_{\max} = \frac{1}{2T_c}\cdot\frac{\lambda}{2} = \frac{\lambda}{4T_c}$.
 
-\section{Radar Geometry}
+\section{Range-Doppler Geometry}
 
 \subsection{Inputs}
 
@@ -114,6 +127,48 @@ Let $\bm{p}$ and $\bm{q}$ form an orthonormal basis with $\bm{v}$ (i.e. via Gram
     \bm{a} &= r'\bm{p} \cos(\psi) + r'\bm{q} \sin(\psi) + \bm{v}\frac{rd}{s} \\
     &= r\left(\sqrt{1 - (d/s)^2}(\bm{p}\cos(\psi) + \bm{q}\sin(\psi)) + \bm{v}\frac{d}{s}\right).
 \end{align*}
+
+\section{Angular FFT Processing}
+
+\begin{definition}[Antenna Spacing]
+Spacing $d$ between elements of the (virtual) receive array.
+\end{definition}
+
+\begin{remark}[Typical Value]
+Radars typically set to $d = \lambda/2$ to avoid spatial aliasing.
+\end{remark}
+
+\begin{definition}[Number of Antennas]
+Number of (virtual) receive antenna elements $N_a$ in the array.
+\end{definition}
+
+Let $\theta$ be the angle to a target, measured from broadside (i.e., the array normal) of a linear array with $N_a$ elements and spacing $d$. After range-Doppler processing, a given range-Doppler bin contains one complex sample per receive antenna; the extra path length to antenna $n$ relative to antenna $0$ is $nd\sin\theta$, giving a phase offset of $\frac{2\pi}{\lambda}nd\sin\theta$. The spatial signal across antennas is therefore
+\begin{align*}
+    x[n] = A\exp\left(j\frac{2\pi}{\lambda}nd\sin\theta\right), \quad n = 0, \dots, N_a - 1.
+\end{align*}
+Taking an $N_a$-point DFT over this spatial signal (i.e., across antennas for a fixed range-Doppler bin) yields the angular spectrum
+\begin{align*}
+    X[k] = \sum_{n=0}^{N_a - 1} x[n] \exp\left(-j\frac{2\pi}{N_a}kn\right),
+\end{align*}
+which is maximized (constructive interference) when $\frac{k}{N_a} = \frac{d\sin\theta}{\lambda}$.
+
+\begin{definition}[Angular Bin Mapping]
+Bin $k$ of the angular spectrum corresponds to $\sin\theta = \frac{k\lambda}{N_ad}$; with the typical spacing $d = \lambda/2$, this is $\sin\theta = \frac{2k}{N_a}$.
+\end{definition}
+\begin{remark}[Non-linearity]
+Unlike range and Doppler, the mapping from bin index to angle is non-linear in $\theta$ (linear only in $\sin\theta$), so angular bins are spaced increasingly far apart in $\theta$ towards $\pm 90^\circ$.
+\end{remark}
+
+\begin{remark}[2D Arrays]
+For 2D arrays, the same principle applies in both dimensions, with the angular spectrum being a 2D DFT over the 2D array, and the angles corresponding to each bin being determined by the number of antennas and spacing in each dimension.
+\end{remark}
+
+\begin{definition}[Angular Resolution]
+$\Delta(\sin\theta) = \frac{\lambda}{N_ad}$.
+\end{definition}
+As with Doppler, the DFT over the $N_a$-antenna aperture has a (normalized spatial) frequency resolution of $1/N_a$ in $\frac{d\sin\theta}{\lambda}$, so $\Delta\left(\frac{d\sin\theta}{\lambda}\right) = \frac{1}{N_a}$, giving $\Delta(\sin\theta) = \frac{\lambda}{N_ad}$.
+
+This resolution is set by the physical aperture $N_ad$: two targets closer than $\Delta(\sin\theta)$ apart cannot be separated into distinct peaks.
 
 \end{document}
 
