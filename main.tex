@@ -63,6 +63,18 @@ $R_{\max} = N\frac{c}{2B} = \frac{F_sc}{2S}$.
 \end{definition}
 This can be seen by combining the range resolution with the number of range bins, which is equal to the DFT window size ($N$).
 
+\begin{remark}[Padding]
+Zero-padding the $N$ ADC samples to $N' > N$ before the range FFT increases the number of range bins via spectral interpolation, but does not change the true range resolution $\Delta r = c/2B$ (set by the swept bandwidth $B$) or the true maximum unambiguous range (set by the sample rate $F_s$ and slope $S$).
+\end{remark}
+
+\begin{remark}[Cropping]
+Using fewer than $N$ of the acquired samples shortens the effective bandwidth $B$ and observation window $T_s$, coarsening the range resolution $\Delta r$ proportionally (since the frequency resolution of the shorter DFT is $1/T_s'$ for the cropped window $T_s' < T_s$), and reduces the number of range bins accordingly.
+\end{remark}
+
+\begin{remark}[Decimation]
+Keeping every $D$-th ADC sample reduces the effective sample rate to $F_s/D$; the observation window $T_s$ is unaffected, so the range resolution $\Delta r = c/2B$ is unchanged, but the maximum unambiguous range $R_{\max} = F_sc/(2S)$ shrinks by a factor of $D$, risking range aliasing unless the signal is properly low-pass filtered first.
+\end{remark}
+
 \section{Doppler Processing}
 
 \begin{definition}[Wavelength]
@@ -91,6 +103,18 @@ When taking a DFT over the $N_d$ chirps of a frame (slow time), the frequency re
 $v_{\max} = \frac{\lambda}{4T_c}$.
 \end{definition}
 Chirps are sampled once every $T_c$ (slow-time sampling rate $1/T_c$), so by the Nyquist criterion the unambiguous Doppler frequency is limited to $|f_d| \leq \frac{1}{2T_c}$. Since $v = f_d\lambda/2$, this gives $v_{\max} = \frac{1}{2T_c}\cdot\frac{\lambda}{2} = \frac{\lambda}{4T_c}$.
+
+\begin{remark}[Padding]
+Zero-padding the $N_d$ chirps to $N_d' > N_d$ before the Doppler FFT increases the number of Doppler bins via spectral interpolation, but does not change the true Doppler resolution $\Delta v = \lambda/(2N_dT_c)$ (set by the number of chirps actually collected) or the maximum unambiguous velocity.
+\end{remark}
+
+\begin{remark}[Cropping]
+Using fewer than $N_d$ of the collected chirps shortens the coherent processing interval $N_dT_c$, coarsening the Doppler resolution $\Delta v = \lambda/(2N_dT_c)$ proportionally, and reduces the number of Doppler bins accordingly.
+\end{remark}
+
+\begin{remark}[Decimation]
+Keeping every $D$-th chirp increases the effective chirp period to $DT_c$; since the total coherent processing interval $N_dT_c$ is unchanged, the Doppler resolution $\Delta v = \lambda/(2N_dT_c)$ is preserved, but the maximum unambiguous velocity $v_{\max} = \lambda/(4T_c)$ shrinks by a factor of $D$, risking Doppler aliasing unless the target's true velocity is known to lie within the new (narrower) unambiguous range.
+\end{remark}
 
 \section{Range-Doppler Geometry}
 
@@ -169,6 +193,18 @@ $\Delta(\sin\theta) = \frac{\lambda}{N_ad}$.
 As with Doppler, the DFT over the $N_a$-antenna aperture has a (normalized spatial) frequency resolution of $1/N_a$ in $\frac{d\sin\theta}{\lambda}$, so $\Delta\left(\frac{d\sin\theta}{\lambda}\right) = \frac{1}{N_a}$, giving $\Delta(\sin\theta) = \frac{\lambda}{N_ad}$.
 
 This resolution is set by the physical aperture $N_ad$: two targets closer than $\Delta(\sin\theta)$ apart cannot be separated into distinct peaks.
+
+\begin{remark}[Padding]
+Zero-padding the $N_a$ antenna samples to $N_a' > N_a$ before the angular FFT increases the number of angular bins via spectral interpolation, but does not change the true angular resolution $\Delta(\sin\theta) = \lambda/(N_ad)$ (set by the physical aperture $N_ad$).
+\end{remark}
+
+\begin{remark}[Cropping]
+Using fewer than $N_a$ of the array elements shortens the effective aperture, coarsening the angular resolution $\Delta(\sin\theta)$ proportionally, and reduces the number of angular bins accordingly.
+\end{remark}
+
+\begin{remark}[Decimation]
+Keeping every $D$-th antenna element over the same physical aperture increases the effective spacing to $Dd$; since the aperture $N_ad$ is unchanged, the angular resolution $\Delta(\sin\theta) = \lambda/(N_ad)$ is preserved, but exceeding the $d = \lambda/2$ spatial Nyquist limit introduces grating lobes (spatial aliasing), causing ambiguous angle estimates.
+\end{remark}
 
 \end{document}
 
