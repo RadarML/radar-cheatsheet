@@ -13,7 +13,16 @@
 \usepackage{mathtools}
 \usepackage{enumitem}
 \usepackage{bm}
+\usepackage{fancyhdr}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{18-848 Radar Cheatsheet}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
 \setlength\parindent{0pt}
+
 \newtheorem{definition}{Definition}[section]
 \theoremstyle{definition}
 \newtheorem{remark}{Remark}[section]
