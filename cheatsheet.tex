@@ -1,0 +1,155 @@
+\newtcolorbox{sectionbox}[1]{%
+  enhanced, rounded corners, arc=2pt,
+  colback=white, colframe=black!65, boxrule=0.5pt,
+  left=4pt, right=4pt, top=4pt, bottom=4pt,
+  title={#1}, fonttitle=\bfseries, coltitle=black,
+  colbacktitle=black!10, titlerule=0.5pt,
+  toptitle=2pt, bottomtitle=2pt, lefttitle=4pt, righttitle=4pt,
+  before skip=0pt, after skip=10pt plus 1fil, breakable=false
+}
+\newenvironment{cheatlist}
+  {\begin{itemize}[leftmargin=1.1em, itemsep=1pt, topsep=1pt, parsep=1pt, label=\textbullet]}
+  {\end{itemize}}
+
+\clearpage
+\newgeometry{top=0.6in, bottom=0.5in, left=0.5in, right=0.5in}
+\thispagestyle{empty}
+
+\begin{center}
+  {\huge\bfseries FMCW Radar Cheatsheet}
+\end{center}
+\vspace{-4pt}
+
+\small
+\setlength{\columnsep}{10pt}
+\begin{multicols}{2}
+
+% ------------------------------------------------- Parameters
+\begin{sectionbox}{Parameters \& Notation}
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.02}
+\begin{tabular}{@{}ll@{}}
+$c$ & $299\,792\,458$ m/s \\
+$B$ & swept bandwidth (MHz--GHz) \\
+$F_s$ & ADC sample rate (Ksps/Msps) \\
+$N$ & ADC samples per chirp \\
+$T_s$ & $= N/F_s$, chirp observation time \\
+$S$ & $= B/T_s = BF_s/N$ (MHz/$\mu$s) \\
+$f_0$ & chirp start frequency \\
+$\lambda$ & $= c/F$, carrier wavelength \\
+$T_c$ & chirp-to-chirp period (slow time) \\
+$N_d$ & chirps per frame \\
+$N_dT_c$ & coherent processing interval (CPI) \\
+$d$ & (virtual) antenna spacing \\
+$N_a$ & (virtual) receive antennas \\
+\end{tabular}
+\end{sectionbox}
+
+% ------------------------------------------------- TI
+\begin{sectionbox}{TI Radars}
+\begin{cheatlist}
+\item $B$ = \lstinline{freq_slope * adc_samples / sample_rate}
+\item $T_c$ = \texttt{(idle\_time + ramp\_end\_time)  * num\_tx} \\ (with TDM across Tx antennas)
+\item Sample order is \lstinline{(slow time, tx, rx, fast time)}
+\end{cheatlist}
+\end{sectionbox}
+
+% ------------------------------------------------- Signal model
+\begin{sectionbox}{Signal Model \& Processing Chain}
+{\centering fast time $\to$ range, slow time $\to$ Doppler, antennas $\to$ angle\par}
+\begin{cheatlist}
+\item Tx: $x_{Tx}(t) = A\exp\!\big(j(2\pi f_0t + \pi\tfrac{B}{T}t^2)\big)$
+\item Rx: same, with $t \to t - t_d$, \ $t_d = 2r/c$
+\item Dechirp (IF/beat): $x_{IF} = x_{Tx}\,x_{Rx}^*$
+  \[ = A\exp\!\big(j(2\pi f_0t_d + 2\pi S t_d t - \pi S t_d^2)\big) \]
+\item Sample at $t = nT_s$ $\Rightarrow$ cube $x_{IF}[n, n_d, n_a]$.
+\end{cheatlist}
+\vspace{2pt}
+\end{sectionbox}
+
+% ------------------------------------------------- Range
+\begin{sectionbox}{Range (fast-time FFT)}
+\begin{cheatlist}
+\item Beat frequency: $f_b = St_d = \dfrac{2Sr}{c} \Rightarrow r = \dfrac{f_bc}{2S}$
+\item Resolution: $\Delta r = \dfrac{c}{2B}$
+\item Max range: $R_{\max} = N\,\Delta r = \dfrac{F_sc}{2S}$
+\item Real-valued ADC (no I/Q): only $N/2$ usable bins, $f_{b,\max} = F_s/2$, so $R_{\max} = \dfrac{F_sc}{4S}$
+\end{cheatlist}
+\end{sectionbox}
+
+% ------------------------------------------------- Doppler
+\begin{sectionbox}{Doppler (slow-time FFT)}
+\begin{cheatlist}
+\item Round-trip phase: $\phi \approx 2\pi f_0t_d = 4\pi r / \lambda$
+\item Per-chirp advance: $\Delta\phi_{dop} = \dfrac{4\pi v}{\lambda}T_c$
+  $\Rightarrow v = \dfrac{\Delta\phi_{dop}\,\lambda}{4\pi T_c}$
+\item Doppler shift: $f_d = 2v/\lambda$
+\item Resolution: $\Delta v = \dfrac{\lambda}{2N_dT_c}$
+\item Max unambiguous: $|v| \le v_{\max} = \dfrac{\lambda}{4T_c}$ \\
+  (from $|f_d| \le \tfrac{1}{2T_c}$, or $|\Delta\phi_{dop}| < \pi$)
+\end{cheatlist}
+\end{sectionbox}
+
+% ------------------------------------------------- FFT signs
+\begin{sectionbox}{FFT Bin $\to$ Frequency}
+For $X[k] = \sum_n x[n]e^{-j2\pi kn/N}$, the upper half of the index range is negative frequency:
+\[ f_k = \begin{cases} \frac{k}{N}F_s, & 0 \le k \le N/2 \\[1pt] \frac{k-N}{N}F_s, & N/2 < k \le N-1 \end{cases} \]
+\begin{cheatlist}
+\item Range: $r \ge 0$ always $\Rightarrow$ \textbf{no} \lstinline{fftshift}.
+\item Doppler ($v$) and angle ($\sin\theta$) are signed $\Rightarrow$ \textbf{must} \lstinline{fftshift}.
+\end{cheatlist}
+\end{sectionbox}
+
+% ------------------------------------------------- Beamforming
+\begin{sectionbox}{Array Beamforming}
+One complex sample per antenna, per range-Doppler bin.
+\begin{cheatlist}
+\item Steering vector, element positions $p_m$:
+  \[ [a(\theta)]_m = \exp\!\left(-j\tfrac{2\pi}{\lambda}p_m\sin\theta\right) \]
+\item Model (single source): $\bm{x}(t) = a(\theta)s(t) + \bm{n}(t)$
+\item Output: $y(t;\theta) = a^H(\theta)\bm{x}(t)$
+\item Sweep $\theta$, plot $|y(t;\theta)|^2$ $\Rightarrow$ angular spectrum.
+\end{cheatlist}
+\end{sectionbox}
+
+% ------------------------------------------------- Angle FFT
+\begin{sectionbox}{Angle FFT}
+\begin{cheatlist}
+\item Across-antenna signal: $x[n] = A\exp\!\left(j\tfrac{2\pi}{\lambda}nd\sin\theta\right)$
+\item Peak at $\dfrac{k}{N_a} = \dfrac{d\sin\theta}{\lambda}$, so bin $k$ of the FFT maps to
+  \[ \sin\theta = \frac{k\lambda}{N_ad} \ \overset{d=\lambda/2}{=} \ \frac{2k}{N_a} \]
+\item Resolution: $\Delta(\sin\theta) = \dfrac{\lambda}{N_ad}$ \ (aperture $N_ad$)
+\item In angle: $\Delta\theta = \dfrac{\lambda}{N_ad\cos\theta}$; near broadside $\Delta\theta \approx \lambda/D$, $D = (N_a-1)d$; diverges as $\theta \to \pm90^\circ$.
+\item Bins are linear in $\sin\theta$, \emph{not} in $\theta$.
+\item Need $d \le \lambda/2$, else grating lobes.
+\item 2D arrays: same idea, 2D DFT, per-axis $N_a$ and $d$.
+\end{cheatlist}
+\end{sectionbox}
+
+% ------------------------------------------------- Pad/crop/decimate
+\begin{sectionbox}{Zero-Pad / Crop / Decimate}
+\setlength{\tabcolsep}{3pt}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{ll>{\raggedright\arraybackslash}p{0.39\linewidth}@{}}
+\toprule
+\textbf{Op} & \textbf{Resolution} & \textbf{Max / bins} \\
+\midrule
+Pad $N{\to}N'{>}N$ & unchanged & max unchanged; more bins (interpolation only) \\
+Crop $N{\to}N'{<}N$ & coarsens $\propto N/N'$ & fewer bins \\
+Decimate $/D$ & unchanged & max $/D$ $\Rightarrow$ risk of aliasing \\
+\bottomrule
+\end{tabular}
+\par\vspace{6pt}
+Per-axis specifics of decimation by $D$:
+\begin{cheatlist}
+\item Range: $F_s \to F_s/D$, $R_{\max}/D$ --- low-pass filter first.
+\item Doppler: $T_c \to DT_c$, $v_{\max}/D$ --- alias unless $|v|$ is known small.
+\item Angle: $d \to Dd$; aperture kept, but $Dd > \lambda/2$ gives grating lobes.
+\end{cheatlist}
+\end{sectionbox}
+
+\end{multicols}
+\clearpage
+\restoregeometry
+\setcounter{page}{1}
+\normalsize

@@ -14,6 +14,11 @@
 \usepackage{enumitem}
 \usepackage{bm}
 \usepackage{fancyhdr}
+% --- required by cheatsheet.tex ---
+\usepackage{xcolor}
+\usepackage[most]{tcolorbox}
+\usepackage{booktabs}
+\usepackage{array}
 
 \pagestyle{fancy}
 \fancyhf{}
@@ -29,6 +34,9 @@
 \theoremstyle{plain}
 
 \begin{document}
+
+\input{cheatsheet}
+
 
 \section{Signal Model}
 
@@ -55,7 +63,11 @@ $f_b = \frac{B}{T}t_d = S\,t_d = \frac{2Sr}{c}$, so $r = \frac{f_bc}{2S}$.
 The range FFT recovers $f_b$ per target as a spectral peak. With $x_{IF}$ complex/IQ, $f_b$ is unambiguous up to $F_s$, matching $R_{\max} = F_sc/(2S)$ below.
 
 \begin{remark}[Real-Valued ADC Sampling]
-If the ADC instead samples a real-valued IF signal (no I/Q mixer), $x_{IF}[n]$ is real, so its $N$-point DFT is conjugate-symmetric and only the $N/2$ bins from $0$ to $F_s/2$ are usable (the upper half mirrors the lower half rather than encoding new information). Nyquist then caps the beat frequency at $f_{b,\max} = F_s/2$, halving the usable range bins and giving $R_{\max} = \frac{F_sc}{4S}$. We assume complex/IQ sampling unless stated otherwise.
+If the ADC instead samples a real-valued IF signal (no I/Q mixer), $x_{IF}[n]$ is real, so its $N$-point DFT is conjugate-symmetric and only the $N/2$ bins from $0$ to $F_s/2$ are usable (the upper half mirrors the lower half rather than encoding new information). Nyquist then caps the beat frequency at $f_{b,\max} = F_s/2$, halving the usable range bins and giving $R_{\max} = \frac{F_sc}{4S}$.
+\end{remark}
+
+\begin{remark}
+We will assume complex/IQ sampling unless stated otherwise.
 \end{remark}
 
 \begin{definition}[Range FFT]
@@ -221,6 +233,42 @@ Let $\bm{p}$ and $\bm{q}$ form an orthonormal basis with $\bm{v}$ (i.e. via Gram
     \bm{a} &= r'\bm{p} \cos(\psi) + r'\bm{q} \sin(\psi) + \bm{v}\frac{rd}{s} \\
     &= r\left(\sqrt{1 - (d/s)^2}(\bm{p}\cos(\psi) + \bm{q}\sin(\psi)) + \bm{v}\frac{d}{s}\right).
 \end{align*}
+
+\section{MIMO and the Virtual Array}
+
+Angle estimation requires many spatially separated measurements, but physical elements are costly. Since only the \emph{sum} of the transmit and receive path lengths appears in the measured phase, transmitting from several separated elements synthesizes a larger effective array.
+
+\begin{definition}[Transmit and Receive Arrays]
+$N_{tx}$ transmit elements at $p^{tx}_0, \dots, p^{tx}_{N_{tx}-1}$ and $N_{rx}$ receive elements at $p^{rx}_0, \dots, p^{rx}_{N_{rx}-1}$, along a common 1-D array axis.
+\end{definition}
+
+\begin{definition}[Virtual Array]
+For a target at angle $\theta$, pair $(i, j)$ measures round-trip phase
+$$\phi_{ij} = \frac{2\pi}{\lambda}\left(p^{tx}_i + p^{rx}_j\right)\sin\theta,$$
+identical to a single physical element at $p^{tx}_i + p^{rx}_j$. The \emph{virtual array} is the set of these sums,
+$$\{p_m\} = \left\{p^{tx}_i + p^{rx}_j \ : \ 0 \leq i < N_{tx}, \ 0 \leq j < N_{rx}\right\}, \qquad N_a = N_{tx}N_{rx}.$$
+\end{definition}
+Against a reference element at the origin, the extra path length is $p^{tx}_i\sin\theta$ on transmit and $p^{rx}_j\sin\theta$ on receive; the round trip accumulates both.
+
+\begin{remark}[Uniform Virtual Array (ULA)]
+Receive elements spaced $d$ and transmit elements spaced $N_{rx}d$ apart make the sums $p^{tx}_i + p^{rx}_j$ tile a uniform linear array of $N_{tx}N_{rx}$ elements at spacing $d$, with no gaps or repeats.
+\end{remark}
+
+\begin{remark}[Resolution Gain]
+The angular resolution $\Delta(\sin\theta) = \frac{\lambda}{N_ad}$ is set by the \emph{virtual} aperture $N_ad$, so MIMO gains a factor of $N_{tx}$ over the receive array alone while costing only $N_{tx} + N_{rx}$ physical elements.
+\end{remark}
+
+\begin{definition}[TDM-MIMO]
+Exactly one transmit element is active per chirp, cycling through the $N_{tx}$ elements in order, so each transmitter's contribution is separated by its time slot. One pass through all $N_{tx}$ is a \emph{loop}, and a frame is $N_d$ loops.
+\end{definition}
+
+\begin{definition}[Ramp Repetition Interval]
+Time $T_r$ between consecutive chirps of any transmitter, including idle time. This differs from the chirp duration $T$, which covers only the active sweep.
+\end{definition}
+
+\begin{remark}[Alternatives to TDM]
+Doppler-division multiplexing (DDM) instead transmits from all elements simultaneously, separating them by (coded) Doppler offset. This avoids the $N_{tx}$-fold reduction in $v_{\max}$, at the cost of additional separation processing.
+\end{remark}
 
 \section{Array Beamforming}
 
