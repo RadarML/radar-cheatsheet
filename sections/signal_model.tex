@@ -1,0 +1,17 @@
+\section{Signal Model}
+
+\begin{definition}[Transmitted Chirp]
+$x_{Tx}(t) = A\exp\left(j\left(2\pi f_0 t + \pi\frac{B}{T}t^2\right)\right)$, where $f_0$ is the chirp start frequency and $T$ is the chirp duration (often $T \approx T_s$).
+\end{definition}
+This follows from integrating the instantaneous frequency $f(t) = f_0 + \frac{B}{T}t$ (a linear ramp from $f_0$ to $f_0 + B$ over duration $T$): $\phi(t) = 2\pi\int_0^t f(t')\,dt' = 2\pi f_0 t + \pi\frac{B}{T}t^2$.
+
+\begin{definition}[Received Chirp]
+For a target at range $r$ with round-trip delay $t_d = 2r/c$, $x_{Rx}(t) = A\exp\left(j\left(2\pi f_0(t-t_d) + \pi\frac{B}{T}(t-t_d)^2\right)\right)$.
+\end{definition}
+
+\begin{definition}[IF / Beat Signal]
+Dechirp mixing multiplies the received signal by the conjugate of the transmitted signal:
+$$x_{IF}(t) = x_{Tx}(t)\,x_{Rx}^*(t) = A\exp\left(j\left(2\pi f_0 t_d + 2\pi\frac{B}{T}t_d t - \pi\frac{B}{T}t_d^2\right)\right),$$
+sampled at $t = nT_s$ to give $x_{IF}[n]$.
+\end{definition}
+

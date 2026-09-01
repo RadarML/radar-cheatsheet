@@ -1,0 +1,22 @@
+\section{Array Beamforming}
+
+After range-Doppler processing, a given range-Doppler bin contains one complex sample per receive antenna. To estimate the angle $\theta$ of the target from these per-antenna phases, we look at the array response across antennas.
+
+\begin{definition}[Steering Vector]
+For an array with element positions $p_0, p_1, \dots, p_{N_a-1}$ along a 1-D array axis, the array vector is
+$$a(\theta) = \begin{bmatrix} \exp\left(-j\frac{2\pi}{\lambda}p_0\sin\theta\right) \\ \exp\left(-j\frac{2\pi}{\lambda}p_1\sin\theta\right) \\ \vdots \\ \exp\left(-j\frac{2\pi}{\lambda}p_{N_a-1}\sin\theta\right) \end{bmatrix}$$
+for a target at angle $\theta$.
+\end{definition}
+
+\begin{definition}[Array Data Model]
+Assuming a single target/source, $\bm{x}(t) = a(\theta)s(t) + \bm{n}(t)$, where $s(t)$ is the per-antenna baseband signal and $\bm{n}(t)$ is noise.
+\end{definition}
+
+\begin{definition}[Beamformed Output]
+$y(t; \theta) = a^H(\theta)\,\bm{x}(t)$.
+\end{definition}
+
+\begin{remark}[Angular Spectrum]
+Steering (conjugate-matching) the array response to angle $\theta$ coherently combines the signal from that direction.  Accordingly, sweeping $\theta$ (i.e., with arbitrary sampling resolution) and evaluating $|y(t;\theta)|^2$ recovers the angular spectrum for the given array geometry.
+\end{remark}
+

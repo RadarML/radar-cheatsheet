@@ -1,0 +1,62 @@
+\section{Angular FFT Processing}
+
+When the array is uniform, $p_m = md$, and sweeping $\theta$ in the beamformer above becomes equivalent to a spatial DFT across antennas, computable efficiently via FFT.
+
+\begin{definition}[Antenna Spacing]
+Spacing $d$ between elements of the (virtual) receive array.
+\end{definition}
+
+\begin{remark}[Typical Value]
+Radars typically set to $d = \lambda/2$ to avoid spatial aliasing.
+\end{remark}
+
+\begin{definition}[Number of Antennas]
+Number of (virtual) receive antenna elements $N_a$ in the array.
+\end{definition}
+
+Let $\theta$ be the angle to a target, measured from broadside (i.e., the array normal) of a linear array with $N_a$ elements and spacing $d$. The extra path length to antenna $n$ relative to antenna $0$ is $nd\sin\theta$, giving a phase offset of $\frac{2\pi}{\lambda}nd\sin\theta$. The spatial signal across antennas is therefore
+\begin{align*}
+    x[n] = A\exp\left(j\frac{2\pi}{\lambda}nd\sin\theta\right), \quad n = 0, \dots, N_a - 1.
+\end{align*}
+Taking an $N_a$-point DFT over this spatial signal (i.e., across antennas for a fixed range-Doppler bin) yields the angular spectrum
+\begin{align*}
+    X[k] = \sum_{n=0}^{N_a - 1} x[n] \exp\left(-j\frac{2\pi}{N_a}kn\right),
+\end{align*}
+which is maximized (constructive interference) when $\frac{k}{N_a} = \frac{d\sin\theta}{\lambda}$.
+
+\begin{definition}[Angular Bin Mapping]
+Bin $k$ of the angular spectrum corresponds to $\sin\theta = \frac{k\lambda}{N_ad}$; with the typical spacing $d = \lambda/2$, this is $\sin\theta = \frac{2k}{N_a}$.
+\end{definition}
+\begin{remark}[Non-linearity]
+Unlike range and Doppler, the mapping from bin index to angle is non-linear in $\theta$ (linear only in $\sin\theta$), so angular bins are spaced increasingly far apart in $\theta$ towards $\pm 90^\circ$.
+\end{remark}
+
+\begin{remark}[2D Arrays]
+For 2D arrays, the same principle applies in both dimensions, with the angular spectrum being a 2D DFT over the 2D array, and the angles corresponding to each bin being determined by the number of antennas and spacing in each dimension.
+\end{remark}
+
+\begin{definition}[Angular Resolution]
+$\Delta(\sin\theta) = \frac{\lambda}{N_ad}$.
+\end{definition}
+As with Doppler, the DFT over the $N_a$-antenna aperture has a (normalized spatial) frequency resolution of $1/N_a$ in $\frac{d\sin\theta}{\lambda}$, so
+$$\Delta\left(\frac{d\sin\theta}{\lambda}\right) = \frac{1}{N_a} \quad\Longrightarrow\quad \Delta(\sin\theta) = \frac{\lambda}{N_ad}.$$
+
+In other words, given a physical aperture $N_ad$, two targets closer than $\Delta(\sin\theta)$ apart cannot be separated into distinct peaks.
+
+\begin{remark}[Resolution in Angle]
+Resolution in $\theta$ coarsens away from broadside: since $\frac{d(\sin\theta)}{d\theta} = \cos\theta$,
+$$\Delta\theta = \frac{\Delta(\sin\theta)}{\cos\theta} = \frac{\lambda}{N_ad\cos\theta}.$$
+Near broadside ($\theta \approx 0$), this simplifies to $\Delta\theta \approx \lambda/D$, where $D = (N_a-1)d$ is the array aperture. However, as $\theta \to \pm 90^\circ$, $\cos\theta \to 0$ and $\Delta\theta$ diverges.
+\end{remark}
+
+\begin{remark}[Padding]
+Zero-padding the $N_a$ antenna samples to $N_a' > N_a$ before the angular FFT increases the number of angular bins via spectral interpolation, but does not change the true angular resolution $\Delta(\sin\theta) = \lambda/(N_ad)$ (set by the physical aperture $N_ad$).
+\end{remark}
+
+\begin{remark}[Cropping]
+Using fewer than $N_a$ of the array elements shortens the effective aperture, coarsening the angular resolution $\Delta(\sin\theta)$ proportionally, and reduces the number of angular bins accordingly.
+\end{remark}
+
+\begin{remark}[Decimation]
+Keeping every $D$-th antenna element over the same physical aperture increases the effective spacing to $Dd$; since the aperture $N_ad$ is unchanged, the angular resolution $\Delta(\sin\theta) = \lambda/(N_ad)$ is preserved, but exceeding the $d = \lambda/2$ spatial Nyquist limit introduces grating lobes (spatial aliasing), causing ambiguous angle estimates.
+\end{remark}

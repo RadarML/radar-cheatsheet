@@ -1,0 +1,71 @@
+\section{Range Processing}
+
+\begin{definition}[Beat Frequency]
+$f_b = \frac{B}{T}t_d = S\,t_d = \frac{2Sr}{c}$, so $r = \frac{f_bc}{2S}$.
+\end{definition}
+The range FFT recovers $f_b$ per target as a spectral peak. With $x_{IF}$ complex/IQ, $f_b$ is unambiguous up to $F_s$, matching $R_{\max} = F_sc/(2S)$ below.
+
+\begin{remark}[Real-Valued ADC Sampling]
+If the ADC instead samples a real-valued IF signal (no I/Q mixer), $x_{IF}[n]$ is real, so its $N$-point DFT is conjugate-symmetric and only the $N/2$ bins from $0$ to $F_s/2$ are usable (the upper half mirrors the lower half rather than encoding new information). Nyquist then caps the beat frequency at $f_{b,\max} = F_s/2$, halving the usable range bins and giving $R_{\max} = \frac{F_sc}{4S}$.
+\end{remark}
+
+\begin{remark}
+We will assume complex/IQ sampling unless stated otherwise.
+\end{remark}
+
+\begin{definition}[Range FFT]
+$X[r] = \sum_{n=0}^{N-1} x_{IF}[n]\,\exp\left(-j2\pi\frac{rn}{N}\right)$.
+\end{definition}
+
+\begin{definition}[Bandwidth]
+Radar bandwidth (frequency) $B$ available to be swept during the chirp period; typically MHz or GHz.
+\end{definition}
+
+\begin{remark}[TI Implementation]
+On a TI radar, this is \lstinline{freq_slope  * adc_samples / sample_rate}.
+\end{remark}
+
+\begin{definition}[Speed of Light]
+$c = 299 792 458 m/s$.
+\end{definition}
+
+\begin{definition}[Sample rate]
+Sampling frequency $F_s$ of the radar ADC.
+\end{definition}
+
+\begin{remark}[Units]
+This is typically specified in KHz (Ksps) or MHz (Msps).
+\end{remark}
+
+\begin{definition}[Number of samples]
+Number of ADC samples $N$ per chirp; this leads to a total observation time of $T_s = N / F_s$.
+\end{definition}
+
+\begin{definition}[Slope]
+Slope $S = B / T_s = BF_s / N$ of the chirp waveform; typically MHz/$\mu$s.
+\end{definition}
+
+\begin{definition}[Range Resolution]
+$\Delta r = \frac{c}{2B}$.
+\end{definition}
+Suppose a given object is at range $r$. This leads to time delay $\tau = 2r/c$, so $\Delta r = c \Delta \tau / 2$.
+
+When taking a DFT over the chirp, the frequency resolution is $1/T_s$. Since the frequency resolution corresponding to a time resolution is $S$, the time delay resolution is $\Delta \tau = \frac{1/T_s}{S} = \frac{1}{B}$. This leads to $\Delta r = c \Delta \tau / 2 = \frac{c}{2B}$.
+
+\begin{definition}[Maximum Range]
+$R_{\max} = N\frac{c}{2B} = \frac{F_sc}{2S}$.
+\end{definition}
+This can be seen by combining the range resolution with the number of range bins, which is equal to the DFT window size ($N$).
+
+\begin{remark}[Padding]
+Zero-padding the $N$ ADC samples to $N' > N$ before the range FFT increases the number of range bins via spectral interpolation, but does not change the true range resolution $\Delta r = c/2B$ (set by the swept bandwidth $B$) or the true maximum unambiguous range (set by the sample rate $F_s$ and slope $S$).
+\end{remark}
+
+\begin{remark}[Cropping]
+Using fewer than $N$ of the acquired samples shortens the effective bandwidth $B$ and observation window $T_s$, coarsening the range resolution $\Delta r$ proportionally (since the frequency resolution of the shorter DFT is $1/T_s'$ for the cropped window $T_s' < T_s$), and reduces the number of range bins accordingly.
+\end{remark}
+
+\begin{remark}[Decimation]
+Keeping every $D$-th ADC sample reduces the effective sample rate to $F_s/D$; the observation window $T_s$ is unaffected, so the range resolution $\Delta r = c/2B$ is unchanged, but the maximum unambiguous range $R_{\max} = F_sc/(2S)$ shrinks by a factor of $D$, risking range aliasing unless the signal is properly low-pass filtered first.
+\end{remark}
+

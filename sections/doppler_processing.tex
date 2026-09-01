@@ -1,0 +1,68 @@
+\section{Doppler Processing}
+
+\begin{definition}[Wavelength]
+$\lambda = c / F$.
+\end{definition}
+
+\begin{remark}[Narrow-Band Approximation]
+If using a narrow-band radar, $\lambda$ can be approximated as a constant with respect to the center frequency of the chirp.
+\end{remark}
+
+\begin{definition}[Chirp Rate]
+Time between chirps $T_c$.
+\end{definition}
+\begin{remark}[TI Implementation]
+On a TI radar, if using time-division multiplexing across antennas, this is \lstinline{(idle_time + ramp_end_time) * num_tx}.
+\end{remark}
+
+\begin{definition}[Round-Trip Phase]
+$\phi \approx 2\pi f_0 t_d = 2\pi f_0 \cdot \frac{2r}{c} \approx \frac{4\pi r}{\lambda}$.
+\end{definition}
+
+\begin{definition}[Doppler Phase Evolution]
+Over slow time $t_{slow} = nT_c$ ($n = 1, 2, \dots, N_d$ chirps), with $R(t_{slow}) = R_0 + vt_{slow}$:
+$$\phi_{dop}(t_{slow}) = \frac{4\pi R(t_{slow})}{\lambda} = \frac{4\pi R_0}{\lambda} + \frac{4\pi v}{\lambda}t_{slow}.$$
+\end{definition}
+
+\begin{definition}[Velocity from Phase Difference]
+The phase advances by $\Delta\phi_{dop} = \phi_{dop}[n] - \phi_{dop}[n-1] = \frac{4\pi v}{\lambda}T_c$ per chirp, giving the two-chirp velocity estimate $v = \frac{\Delta\phi_{dop}\lambda}{4\pi T_c}$.
+\end{definition}
+
+\begin{definition}[Doppler Resolution]
+$\Delta v = \frac{\lambda}{2N_dT_c}$.
+\end{definition}
+Suppose a given object has radial velocity $v$. The two-way Doppler shift is $f_d = 2v/\lambda$, so $v = f_d\lambda/2$ and $\Delta v = \Delta f_d \lambda / 2$.
+
+When taking a DFT over the $N_d$ chirps of a frame (slow time), the frequency resolution is $1/(N_dT_c)$. This is exactly the Doppler frequency resolution $\Delta f_d$, so $\Delta v = \Delta f_d \lambda/2 = \frac{\lambda}{2N_dT_c}$.
+
+\begin{definition}[Maximum Doppler Velocity]
+$v_{\max} = \frac{\lambda}{4T_c}$.
+\end{definition}
+Chirps are sampled once every $T_c$ (slow-time sampling rate $1/T_c$), so by the Nyquist criterion the unambiguous Doppler frequency is limited to $|f_d| \leq \frac{1}{2T_c}$. Since $v = f_d\lambda/2$, this gives $v_{\max} = \frac{1}{2T_c}\cdot\frac{\lambda}{2} = \frac{\lambda}{4T_c}$.
+
+\begin{remark}[Alternative Max-Velocity Derivation]
+Equivalently, from the phase-difference view above, unambiguous phase requires $|\Delta\phi_{dop}| < \pi$, i.e. $\frac{4\pi v}{\lambda}T_c < \pi$, giving the same $v_{\max} = \frac{\lambda}{4T_c}$.
+\end{remark}
+
+\begin{remark}[FFT Bin Sign Interpretation]
+For a DFT
+$$X[k] = \sum_n x[n]\exp(-j2\pi kn/N),$$
+bin $k = N-1$ is identical to bin $k=-1$ since
+$$\exp(-j2\pi(N-1)n/N) = \exp(j2\pi n/N)\exp(-j2\pi n) = \exp(j2\pi n/N),$$
+so bins in the upper half of the index range represent negative frequencies:
+$$f_k = \begin{cases} \frac{k}{N}F_s, & 0 \leq k \leq N/2 \\ \frac{k-N}{N}F_s, & N/2 < k \leq N-1. \end{cases}$$
+Because measured range is always non-negative, the Range FFT does not require any \texttt{fftshift}. But Doppler velocity (and, in the next section, $\sin\theta$) can be negative, so Doppler and Angle FFT outputs must be reinterpreted (\lstinline{fftshift}-ed) using the formula above to recover signed velocity/angle.
+\end{remark}
+
+\begin{remark}[Padding]
+Zero-padding the $N_d$ chirps to $N_d' > N_d$ before the Doppler FFT increases the number of Doppler bins via spectral interpolation, but does not change the true Doppler resolution $\Delta v = \lambda/(2N_dT_c)$ (set by the number of chirps actually collected) or the maximum unambiguous velocity.
+\end{remark}
+
+\begin{remark}[Cropping]
+Using fewer than $N_d$ of the collected chirps shortens the coherent processing interval $N_dT_c$, coarsening the Doppler resolution $\Delta v = \lambda/(2N_dT_c)$ proportionally, and reduces the number of Doppler bins accordingly.
+\end{remark}
+
+\begin{remark}[Decimation]
+Keeping every $D$-th chirp increases the effective chirp period to $DT_c$; since the total coherent processing interval $N_dT_c$ is unchanged, the Doppler resolution $\Delta v = \lambda/(2N_dT_c)$ is preserved, but the maximum unambiguous velocity $v_{\max} = \lambda/(4T_c)$ shrinks by a factor of $D$, risking Doppler aliasing unless the target's true velocity is known to lie within the new (narrower) unambiguous range.
+\end{remark}
+

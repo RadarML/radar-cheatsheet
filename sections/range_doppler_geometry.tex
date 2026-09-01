@@ -1,0 +1,40 @@
+\section{Range-Doppler Geometry}
+
+\begin{remark}
+This section is useful for radar \emph{rendering}, but generally not relevant to perception. For a deep dive into how this can be used, as well as an expanded derivation (Appendix~A.5), see \emph{Implicit Doppler Tomography for Radar Novel View Synthesis}, Huang et. al. (CVPR '24).
+\end{remark}
+
+\subsection{Inputs}
+
+\begin{definition}[Velocity]
+We denote the velocity direction as $\bm{v}$, where $||\bm{v}||_2 = 1.$
+\end{definition}
+
+\begin{definition}[Speed]
+Denote the magnitude component as $s$, where the full velocity is $\bm{v}s$.
+\end{definition}
+
+\begin{definition}[Measurements: Distance (radius), Doppler]
+$(r, d)$ bins; assuming the sensor position is 0, for positions $\bm{a}$, this constrains measurements to $||\bm{a}||_2 = r$ and $\frac{\bm{a}^T\bm{v}s}{||\bm{a}||_2} = \frac{\bm{a}^T\bm{v}s}{r} = d$.
+\end{definition}
+
+The target integration is described by
+\begin{align*}
+    y(r, d ; \ \bm{x}_{\text{sensor}}, \bm{v})
+    = \int\displaylimits_{||\bm{t}||_2 = r, \frac{\bm{t}^T\bm{v}}{||\bm{t}||_2} = d} \sigma(\bm{x}_{\text{sensor}} + \bm{t}) \ d\bm{t}
+\end{align*}
+
+\subsection{Integration Circle}
+
+The constraints are a sphere and a plane, which should constrain measurements to a circle. The center of the circle is $\bm{c} = \bm{v}\frac{rd}{s}$, since this is in the direction of the normal vector $\bm{v}$ and satisfies
+$$ \frac{(\bm{v}(rd/s))^T\bm{v}s}{r} = \frac{\bm{v}^T\bm{v}s(rd/s)}{r} = d.$$
+
+The radius of this circle is
+$$ r' = \sqrt{r - \left\| \bm{v}\frac{rd}{s} \right\|^2} = \sqrt{r - \left(\frac{rd}{s}\right)^2} = r\sqrt{1 - \left(\frac{d}{s}\right)^2}.$$
+
+Let $\bm{p}$ and $\bm{q}$ form an orthonormal basis with $\bm{v}$ (i.e. via Gram-Schmidt). Then, the circle can be parameterized by angle $\psi$ as
+\begin{align*}
+    \bm{a} &= r'\bm{p} \cos(\psi) + r'\bm{q} \sin(\psi) + \bm{v}\frac{rd}{s} \\
+    &= r\left(\sqrt{1 - (d/s)^2}(\bm{p}\cos(\psi) + \bm{q}\sin(\psi)) + \bm{v}\frac{d}{s}\right).
+\end{align*}
+

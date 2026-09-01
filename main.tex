@@ -19,12 +19,22 @@
 \usepackage[most]{tcolorbox}
 \usepackage{booktabs}
 \usepackage{array}
+\usepackage{hyperref}
 
 \newcommand{\midbullet}{\mathbin{\vcenter{\hbox{\scalebox{0.6}{$\bullet$}}}}}
 
+\newcommand{\docversion}{v1.0}
+\newcommand{\docdate}{2026.09.01}
+\newcommand{\docrefline}{FMCW Radar Cheatsheet\enspace$\midbullet$\enspace \docversion, \docdate}
+
+\hypersetup{
+  pdftitle={FMCW Radar Cheatsheet},
+  hidelinks
+}
+
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{FMCW Radar Reference\enspace$\midbullet$\enspace v1.0, 2026.09.01}
+\fancyhead[L]{\docrefline}
 \fancyhead[R]{\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
 
@@ -39,323 +49,12 @@
 
 \input{cheatsheet}
 
-
-\section{Signal Model}
-
-\begin{definition}[Transmitted Chirp]
-$x_{Tx}(t) = A\exp\left(j\left(2\pi f_0 t + \pi\frac{B}{T}t^2\right)\right)$, where $f_0$ is the chirp start frequency and $T$ is the chirp duration (often $T \approx T_s$).
-\end{definition}
-This follows from integrating the instantaneous frequency $f(t) = f_0 + \frac{B}{T}t$ (a linear ramp from $f_0$ to $f_0 + B$ over duration $T$): $\phi(t) = 2\pi\int_0^t f(t')\,dt' = 2\pi f_0 t + \pi\frac{B}{T}t^2$.
-
-\begin{definition}[Received Chirp]
-For a target at range $r$ with round-trip delay $t_d = 2r/c$, $x_{Rx}(t) = A\exp\left(j\left(2\pi f_0(t-t_d) + \pi\frac{B}{T}(t-t_d)^2\right)\right)$.
-\end{definition}
-
-\begin{definition}[IF / Beat Signal]
-Dechirp mixing multiplies the received signal by the conjugate of the transmitted signal:
-$$x_{IF}(t) = x_{Tx}(t)\,x_{Rx}^*(t) = A\exp\left(j\left(2\pi f_0 t_d + 2\pi\frac{B}{T}t_d t - \pi\frac{B}{T}t_d^2\right)\right),$$
-sampled at $t = nT_s$ to give $x_{IF}[n]$.
-\end{definition}
-
-\section{Range Processing}
-
-\begin{definition}[Beat Frequency]
-$f_b = \frac{B}{T}t_d = S\,t_d = \frac{2Sr}{c}$, so $r = \frac{f_bc}{2S}$.
-\end{definition}
-The range FFT recovers $f_b$ per target as a spectral peak. With $x_{IF}$ complex/IQ, $f_b$ is unambiguous up to $F_s$, matching $R_{\max} = F_sc/(2S)$ below.
-
-\begin{remark}[Real-Valued ADC Sampling]
-If the ADC instead samples a real-valued IF signal (no I/Q mixer), $x_{IF}[n]$ is real, so its $N$-point DFT is conjugate-symmetric and only the $N/2$ bins from $0$ to $F_s/2$ are usable (the upper half mirrors the lower half rather than encoding new information). Nyquist then caps the beat frequency at $f_{b,\max} = F_s/2$, halving the usable range bins and giving $R_{\max} = \frac{F_sc}{4S}$.
-\end{remark}
-
-\begin{remark}
-We will assume complex/IQ sampling unless stated otherwise.
-\end{remark}
-
-\begin{definition}[Range FFT]
-$X[r] = \sum_{n=0}^{N-1} x_{IF}[n]\,\exp\left(-j2\pi\frac{rn}{N}\right)$.
-\end{definition}
-
-\begin{definition}[Bandwidth]
-Radar bandwidth (frequency) $B$ available to be swept during the chirp period; typically MHz or GHz.
-\end{definition}
-
-\begin{remark}[TI Implementation]
-On a TI radar, this is \lstinline{freq_slope  * adc_samples / sample_rate}.
-\end{remark}
-
-\begin{definition}[Speed of Light]
-$c = 299 792 458 m/s$.
-\end{definition}
-
-\begin{definition}[Sample rate]
-Sampling frequency $F_s$ of the radar ADC.
-\end{definition}
-
-\begin{remark}[Units]
-This is typically specified in KHz (Ksps) or MHz (Msps).
-\end{remark}
-
-\begin{definition}[Number of samples]
-Number of ADC samples $N$ per chirp; this leads to a total observation time of $T_s = N / F_s$.
-\end{definition}
-
-\begin{definition}[Slope]
-Slope $S = B / T_s = BF_s / N$ of the chirp waveform; typically MHz/$\mu$s.
-\end{definition}
-
-\begin{definition}[Range Resolution]
-$\Delta r = \frac{c}{2B}$.
-\end{definition}
-Suppose a given object is at range $r$. This leads to time delay $\tau = 2r/c$, so $\Delta r = c \Delta \tau / 2$.
-
-When taking a DFT over the chirp, the frequency resolution is $1/T_s$. Since the frequency resolution corresponding to a time resolution is $S$, the time delay resolution is $\Delta \tau = \frac{1/T_s}{S} = \frac{1}{B}$. This leads to $\Delta r = c \Delta \tau / 2 = \frac{c}{2B}$.
-
-\begin{definition}[Maximum Range]
-$R_{\max} = N\frac{c}{2B} = \frac{F_sc}{2S}$.
-\end{definition}
-This can be seen by combining the range resolution with the number of range bins, which is equal to the DFT window size ($N$).
-
-\begin{remark}[Padding]
-Zero-padding the $N$ ADC samples to $N' > N$ before the range FFT increases the number of range bins via spectral interpolation, but does not change the true range resolution $\Delta r = c/2B$ (set by the swept bandwidth $B$) or the true maximum unambiguous range (set by the sample rate $F_s$ and slope $S$).
-\end{remark}
-
-\begin{remark}[Cropping]
-Using fewer than $N$ of the acquired samples shortens the effective bandwidth $B$ and observation window $T_s$, coarsening the range resolution $\Delta r$ proportionally (since the frequency resolution of the shorter DFT is $1/T_s'$ for the cropped window $T_s' < T_s$), and reduces the number of range bins accordingly.
-\end{remark}
-
-\begin{remark}[Decimation]
-Keeping every $D$-th ADC sample reduces the effective sample rate to $F_s/D$; the observation window $T_s$ is unaffected, so the range resolution $\Delta r = c/2B$ is unchanged, but the maximum unambiguous range $R_{\max} = F_sc/(2S)$ shrinks by a factor of $D$, risking range aliasing unless the signal is properly low-pass filtered first.
-\end{remark}
-
-\section{Doppler Processing}
-
-\begin{definition}[Wavelength]
-$\lambda = c / F$.
-\end{definition}
-
-\begin{remark}[Narrow-Band Approximation]
-If using a narrow-band radar, $\lambda$ can be approximated as a constant with respect to the center frequency of the chirp.
-\end{remark}
-
-\begin{definition}[Chirp Rate]
-Time between chirps $T_c$.
-\end{definition}
-\begin{remark}[TI Implementation]
-On a TI radar, if using time-division multiplexing across antennas, this is \lstinline{(idle_time + ramp_end_time) * num_tx}.
-\end{remark}
-
-\begin{definition}[Round-Trip Phase]
-$\phi \approx 2\pi f_0 t_d = 2\pi f_0 \cdot \frac{2r}{c} \approx \frac{4\pi r}{\lambda}$.
-\end{definition}
-
-\begin{definition}[Doppler Phase Evolution]
-Over slow time $t_{slow} = nT_c$ ($n = 1, 2, \dots, N_d$ chirps), with $R(t_{slow}) = R_0 + vt_{slow}$:
-$$\phi_{dop}(t_{slow}) = \frac{4\pi R(t_{slow})}{\lambda} = \frac{4\pi R_0}{\lambda} + \frac{4\pi v}{\lambda}t_{slow}.$$
-\end{definition}
-
-\begin{definition}[Velocity from Phase Difference]
-The phase advances by $\Delta\phi_{dop} = \phi_{dop}[n] - \phi_{dop}[n-1] = \frac{4\pi v}{\lambda}T_c$ per chirp, giving the two-chirp velocity estimate $v = \frac{\Delta\phi_{dop}\lambda}{4\pi T_c}$.
-\end{definition}
-
-\begin{definition}[Doppler Resolution]
-$\Delta v = \frac{\lambda}{2N_dT_c}$.
-\end{definition}
-Suppose a given object has radial velocity $v$. The two-way Doppler shift is $f_d = 2v/\lambda$, so $v = f_d\lambda/2$ and $\Delta v = \Delta f_d \lambda / 2$.
-
-When taking a DFT over the $N_d$ chirps of a frame (slow time), the frequency resolution is $1/(N_dT_c)$. This is exactly the Doppler frequency resolution $\Delta f_d$, so $\Delta v = \Delta f_d \lambda/2 = \frac{\lambda}{2N_dT_c}$.
-
-\begin{definition}[Maximum Doppler Velocity]
-$v_{\max} = \frac{\lambda}{4T_c}$.
-\end{definition}
-Chirps are sampled once every $T_c$ (slow-time sampling rate $1/T_c$), so by the Nyquist criterion the unambiguous Doppler frequency is limited to $|f_d| \leq \frac{1}{2T_c}$. Since $v = f_d\lambda/2$, this gives $v_{\max} = \frac{1}{2T_c}\cdot\frac{\lambda}{2} = \frac{\lambda}{4T_c}$.
-
-\begin{remark}[Alternative Max-Velocity Derivation]
-Equivalently, from the phase-difference view above, unambiguous phase requires $|\Delta\phi_{dop}| < \pi$, i.e. $\frac{4\pi v}{\lambda}T_c < \pi$, giving the same $v_{\max} = \frac{\lambda}{4T_c}$.
-\end{remark}
-
-\begin{remark}[FFT Bin Sign Interpretation]
-For a DFT
-$$X[k] = \sum_n x[n]\exp(-j2\pi kn/N),$$
-bin $k = N-1$ is identical to bin $k=-1$ since
-$$\exp(-j2\pi(N-1)n/N) = \exp(j2\pi n/N)\exp(-j2\pi n) = \exp(j2\pi n/N),$$
-so bins in the upper half of the index range represent negative frequencies:
-$$f_k = \begin{cases} \frac{k}{N}F_s, & 0 \leq k \leq N/2 \\ \frac{k-N}{N}F_s, & N/2 < k \leq N-1. \end{cases}$$
-Because measured range is always non-negative, the Range FFT does not require any \texttt{fftshift}. But Doppler velocity (and, in the next section, $\sin\theta$) can be negative, so Doppler and Angle FFT outputs must be reinterpreted (\lstinline{fftshift}-ed) using the formula above to recover signed velocity/angle.
-\end{remark}
-
-\begin{remark}[Padding]
-Zero-padding the $N_d$ chirps to $N_d' > N_d$ before the Doppler FFT increases the number of Doppler bins via spectral interpolation, but does not change the true Doppler resolution $\Delta v = \lambda/(2N_dT_c)$ (set by the number of chirps actually collected) or the maximum unambiguous velocity.
-\end{remark}
-
-\begin{remark}[Cropping]
-Using fewer than $N_d$ of the collected chirps shortens the coherent processing interval $N_dT_c$, coarsening the Doppler resolution $\Delta v = \lambda/(2N_dT_c)$ proportionally, and reduces the number of Doppler bins accordingly.
-\end{remark}
-
-\begin{remark}[Decimation]
-Keeping every $D$-th chirp increases the effective chirp period to $DT_c$; since the total coherent processing interval $N_dT_c$ is unchanged, the Doppler resolution $\Delta v = \lambda/(2N_dT_c)$ is preserved, but the maximum unambiguous velocity $v_{\max} = \lambda/(4T_c)$ shrinks by a factor of $D$, risking Doppler aliasing unless the target's true velocity is known to lie within the new (narrower) unambiguous range.
-\end{remark}
-
-\section{Range-Doppler Geometry}
-
-\begin{remark}
-This section is useful for radar \emph{rendering}, but generally not relevant to perception. For a deep dive into how this can be used, as well as an expanded derivation (Appendix~A.5), see \emph{Implicit Doppler Tomography for Radar Novel View Synthesis}, Huang et. al. (CVPR '24).
-\end{remark}
-
-\subsection{Inputs}
-
-\begin{definition}[Velocity]
-We denote the velocity direction as $\bm{v}$, where $||\bm{v}||_2 = 1.$
-\end{definition}
-
-\begin{definition}[Speed]
-Denote the magnitude component as $s$, where the full velocity is $\bm{v}s$.
-\end{definition}
-
-\begin{definition}[Measurements: Distance (radius), Doppler]
-$(r, d)$ bins; assuming the sensor position is 0, for positions $\bm{a}$, this constrains measurements to $||\bm{a}||_2 = r$ and $\frac{\bm{a}^T\bm{v}s}{||\bm{a}||_2} = \frac{\bm{a}^T\bm{v}s}{r} = d$.
-\end{definition}
-
-The target integration is described by
-\begin{align*}
-    y(r, d ; \ \bm{x}_{\text{sensor}}, \bm{v})
-    = \int\displaylimits_{||\bm{t}||_2 = r, \frac{\bm{t}^T\bm{v}}{||\bm{t}||_2} = d} \sigma(\bm{x}_{\text{sensor}} + \bm{t}) \ d\bm{t}
-\end{align*}
-
-\subsection{Integration Circle}
-
-The constraints are a sphere and a plane, which should constrain measurements to a circle. The center of the circle is $\bm{c} = \bm{v}\frac{rd}{s}$, since this is in the direction of the normal vector $\bm{v}$ and satisfies
-$$ \frac{(\bm{v}(rd/s))^T\bm{v}s}{r} = \frac{\bm{v}^T\bm{v}s(rd/s)}{r} = d.$$
-
-The radius of this circle is
-$$ r' = \sqrt{r - \left\| \bm{v}\frac{rd}{s} \right\|^2} = \sqrt{r - \left(\frac{rd}{s}\right)^2} = r\sqrt{1 - \left(\frac{d}{s}\right)^2}.$$
-
-Let $\bm{p}$ and $\bm{q}$ form an orthonormal basis with $\bm{v}$ (i.e. via Gram-Schmidt). Then, the circle can be parameterized by angle $\psi$ as
-\begin{align*}
-    \bm{a} &= r'\bm{p} \cos(\psi) + r'\bm{q} \sin(\psi) + \bm{v}\frac{rd}{s} \\
-    &= r\left(\sqrt{1 - (d/s)^2}(\bm{p}\cos(\psi) + \bm{q}\sin(\psi)) + \bm{v}\frac{d}{s}\right).
-\end{align*}
-
-\section{MIMO and the Virtual Array}
-
-Angle estimation requires many spatially separated measurements, but physical elements are costly. Since only the \emph{sum} of the transmit and receive path lengths appears in the measured phase, transmitting from several separated elements synthesizes a larger effective array.
-
-\begin{definition}[Transmit and Receive Arrays]
-$N_{tx}$ transmit elements at $p^{tx}_0, \dots, p^{tx}_{N_{tx}-1}$ and $N_{rx}$ receive elements at $p^{rx}_0, \dots, p^{rx}_{N_{rx}-1}$, along a common 1-D array axis.
-\end{definition}
-
-\begin{definition}[Virtual Array]
-For a target at angle $\theta$, pair $(i, j)$ measures round-trip phase
-$$\phi_{ij} = \frac{2\pi}{\lambda}\left(p^{tx}_i + p^{rx}_j\right)\sin\theta,$$
-identical to a single physical element at $p^{tx}_i + p^{rx}_j$. The \emph{virtual array} is the set of these sums,
-$$\{p_m\} = \left\{p^{tx}_i + p^{rx}_j \ : \ 0 \leq i < N_{tx}, \ 0 \leq j < N_{rx}\right\}, \qquad N_a = N_{tx}N_{rx}.$$
-\end{definition}
-Against a reference element at the origin, the extra path length is $p^{tx}_i\sin\theta$ on transmit and $p^{rx}_j\sin\theta$ on receive; the round trip accumulates both.
-
-\begin{remark}[Uniform Virtual Array (ULA)]
-Receive elements spaced $d$ and transmit elements spaced $N_{rx}d$ apart make the sums $p^{tx}_i + p^{rx}_j$ tile a uniform linear array of $N_{tx}N_{rx}$ elements at spacing $d$, with no gaps or repeats.
-\end{remark}
-
-\begin{remark}[Resolution Gain]
-The angular resolution $\Delta(\sin\theta) = \frac{\lambda}{N_ad}$ is set by the \emph{virtual} aperture $N_ad$, so MIMO gains a factor of $N_{tx}$ over the receive array alone while costing only $N_{tx} + N_{rx}$ physical elements.
-\end{remark}
-
-\begin{definition}[TDM-MIMO]
-Exactly one transmit element is active per chirp, cycling through the $N_{tx}$ elements in order, so each transmitter's contribution is separated by its time slot. One pass through all $N_{tx}$ is a \emph{loop}, and a frame is $N_d$ loops.
-\end{definition}
-
-\begin{definition}[Ramp Repetition Interval]
-Time $T_r$ between consecutive chirps of any transmitter, including idle time. This differs from the chirp duration $T$, which covers only the active sweep.
-\end{definition}
-
-\begin{remark}[Alternatives to TDM]
-Doppler-division multiplexing (DDM) instead transmits from all elements simultaneously, separating them by (coded) Doppler offset. This avoids the $N_{tx}$-fold reduction in $v_{\max}$, at the cost of additional separation processing.
-\end{remark}
-
-\section{Array Beamforming}
-
-After range-Doppler processing, a given range-Doppler bin contains one complex sample per receive antenna. To estimate the angle $\theta$ of the target from these per-antenna phases, we look at the array response across antennas.
-
-\begin{definition}[Steering Vector]
-For an array with element positions $p_0, p_1, \dots, p_{N_a-1}$ along a 1-D array axis, the array vector is
-$$a(\theta) = \begin{bmatrix} \exp\left(-j\frac{2\pi}{\lambda}p_0\sin\theta\right) \\ \exp\left(-j\frac{2\pi}{\lambda}p_1\sin\theta\right) \\ \vdots \\ \exp\left(-j\frac{2\pi}{\lambda}p_{N_a-1}\sin\theta\right) \end{bmatrix}$$
-for a target at angle $\theta$.
-\end{definition}
-
-\begin{definition}[Array Data Model]
-Assuming a single target/source, $\bm{x}(t) = a(\theta)s(t) + \bm{n}(t)$, where $s(t)$ is the per-antenna baseband signal and $\bm{n}(t)$ is noise.
-\end{definition}
-
-\begin{definition}[Beamformed Output]
-$y(t; \theta) = a^H(\theta)\,\bm{x}(t)$.
-\end{definition}
-
-\begin{remark}[Angular Spectrum]
-Steering (conjugate-matching) the array response to angle $\theta$ coherently combines the signal from that direction.  Accordingly, sweeping $\theta$ (i.e., with arbitrary sampling resolution) and evaluating $|y(t;\theta)|^2$ recovers the angular spectrum for the given array geometry.
-\end{remark}
-
-\section{Angular FFT Processing}
-
-When the array is uniform, $p_m = md$, and sweeping $\theta$ in the beamformer above becomes equivalent to a spatial DFT across antennas, computable efficiently via FFT.
-
-\begin{definition}[Antenna Spacing]
-Spacing $d$ between elements of the (virtual) receive array.
-\end{definition}
-
-\begin{remark}[Typical Value]
-Radars typically set to $d = \lambda/2$ to avoid spatial aliasing.
-\end{remark}
-
-\begin{definition}[Number of Antennas]
-Number of (virtual) receive antenna elements $N_a$ in the array.
-\end{definition}
-
-Let $\theta$ be the angle to a target, measured from broadside (i.e., the array normal) of a linear array with $N_a$ elements and spacing $d$. The extra path length to antenna $n$ relative to antenna $0$ is $nd\sin\theta$, giving a phase offset of $\frac{2\pi}{\lambda}nd\sin\theta$. The spatial signal across antennas is therefore
-\begin{align*}
-    x[n] = A\exp\left(j\frac{2\pi}{\lambda}nd\sin\theta\right), \quad n = 0, \dots, N_a - 1.
-\end{align*}
-Taking an $N_a$-point DFT over this spatial signal (i.e., across antennas for a fixed range-Doppler bin) yields the angular spectrum
-\begin{align*}
-    X[k] = \sum_{n=0}^{N_a - 1} x[n] \exp\left(-j\frac{2\pi}{N_a}kn\right),
-\end{align*}
-which is maximized (constructive interference) when $\frac{k}{N_a} = \frac{d\sin\theta}{\lambda}$.
-
-\begin{definition}[Angular Bin Mapping]
-Bin $k$ of the angular spectrum corresponds to $\sin\theta = \frac{k\lambda}{N_ad}$; with the typical spacing $d = \lambda/2$, this is $\sin\theta = \frac{2k}{N_a}$.
-\end{definition}
-\begin{remark}[Non-linearity]
-Unlike range and Doppler, the mapping from bin index to angle is non-linear in $\theta$ (linear only in $\sin\theta$), so angular bins are spaced increasingly far apart in $\theta$ towards $\pm 90^\circ$.
-\end{remark}
-
-\begin{remark}[2D Arrays]
-For 2D arrays, the same principle applies in both dimensions, with the angular spectrum being a 2D DFT over the 2D array, and the angles corresponding to each bin being determined by the number of antennas and spacing in each dimension.
-\end{remark}
-
-\begin{definition}[Angular Resolution]
-$\Delta(\sin\theta) = \frac{\lambda}{N_ad}$.
-\end{definition}
-As with Doppler, the DFT over the $N_a$-antenna aperture has a (normalized spatial) frequency resolution of $1/N_a$ in $\frac{d\sin\theta}{\lambda}$, so
-$$\Delta\left(\frac{d\sin\theta}{\lambda}\right) = \frac{1}{N_a} \quad\Longrightarrow\quad \Delta(\sin\theta) = \frac{\lambda}{N_ad}.$$
-
-In other words, given a physical aperture $N_ad$, two targets closer than $\Delta(\sin\theta)$ apart cannot be separated into distinct peaks.
-
-\begin{remark}[Resolution in Angle]
-Resolution in $\theta$ coarsens away from broadside: since $\frac{d(\sin\theta)}{d\theta} = \cos\theta$,
-$$\Delta\theta = \frac{\Delta(\sin\theta)}{\cos\theta} = \frac{\lambda}{N_ad\cos\theta}.$$
-Near broadside ($\theta \approx 0$), this simplifies to $\Delta\theta \approx \lambda/D$, where $D = (N_a-1)d$ is the array aperture. However, as $\theta \to \pm 90^\circ$, $\cos\theta \to 0$ and $\Delta\theta$ diverges.
-\end{remark}
-
-\begin{remark}[Padding]
-Zero-padding the $N_a$ antenna samples to $N_a' > N_a$ before the angular FFT increases the number of angular bins via spectral interpolation, but does not change the true angular resolution $\Delta(\sin\theta) = \lambda/(N_ad)$ (set by the physical aperture $N_ad$).
-\end{remark}
-
-\begin{remark}[Cropping]
-Using fewer than $N_a$ of the array elements shortens the effective aperture, coarsening the angular resolution $\Delta(\sin\theta)$ proportionally, and reduces the number of angular bins accordingly.
-\end{remark}
-
-\begin{remark}[Decimation]
-Keeping every $D$-th antenna element over the same physical aperture increases the effective spacing to $Dd$; since the aperture $N_ad$ is unchanged, the angular resolution $\Delta(\sin\theta) = \lambda/(N_ad)$ is preserved, but exceeding the $d = \lambda/2$ spatial Nyquist limit introduces grating lobes (spatial aliasing), causing ambiguous angle estimates.
-\end{remark}
+\input{sections/signal_model}
+\input{sections/range_processing}
+\input{sections/doppler_processing}
+\input{sections/range_doppler_geometry}
+\input{sections/mimo_virtual_array}
+\input{sections/array_beamforming}
+\input{sections/angular_fft_processing}
 
 \end{document}
-
