@@ -1,0 +1,77 @@
+## Core LaTeX auxiliary files
+*.aux
+*.lof
+*.log
+*.lot
+*.fls
+*.out
+*.toc
+*.fmt
+*.fot
+*.cb
+*.cb2
+.*.lb
+
+## Intermediate documents
+*.dvi
+*.xdv
+*-converted-to.*
+
+## Bibliography
+*.bbl
+*.bcf
+*.blg
+*-blx.aux
+*-blx.bib
+*.run.xml
+
+## Build tool auxiliary files
+*.fdb_latexmk
+*.synctex
+*.synctex(busy)
+*.synctex.gz
+*.synctex.gz(busy)
+*.pdfsync
+
+## latexmk
+*.fdb_latexmk
+*.figlist
+*.makefile
+*.pre
+
+## Auxiliary and intermediate files from other packages
+*.acn
+*.acr
+*.alg
+*.glg
+*.glo
+*.gls
+*.glsdefs
+*.lzo
+*.lzs
+*.slg
+*.slo
+*.sls
+*.ist
+*.maf
+*.mlf
+*.mlt
+*.mtc
+*.mtc0
+*.idx
+*.ind
+*.ilg
+*.nav
+*.snm
+*.vrb
+*.figlist
+*.tdo
+*.upa
+*.upb
+
+## macOS / editor cruft
+.DS_Store
+*.swp
+
+## Compiled output (comment out if you want to version the PDF)
+*.pdf
