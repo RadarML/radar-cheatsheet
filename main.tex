@@ -14,15 +14,17 @@
 \usepackage{enumitem}
 \usepackage{bm}
 \usepackage{fancyhdr}
-% --- required by cheatsheet.tex ---
+
 \usepackage{xcolor}
 \usepackage[most]{tcolorbox}
 \usepackage{booktabs}
 \usepackage{array}
 
+\newcommand{\midbullet}{\mathbin{\vcenter{\hbox{\scalebox{0.6}{$\bullet$}}}}}
+
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{FMCW Radar Reference Manual}
+\fancyhead[L]{FMCW Radar Reference\enspace$\midbullet$\enspace v1.0, 2026.09.01}
 \fancyhead[R]{\thepage}
 \renewcommand{\headrulewidth}{0.4pt}
 
